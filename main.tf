@@ -60,22 +60,24 @@ module "eks" {
     kube-proxy = {
       most_recent = true
     }
-    vpc-cni = {
-      most_recent              = true
-      service_account_role_arn = module.vpc_cni_irsa.iam_role_arn
-      configuration_values = jsonencode({
-        env = {
-          # Reference docs https://docs.aws.amazon.com/eks/latest/userguide/cni-increase-ip-addresses.html
-          ENABLE_PREFIX_DELEGATION = "true"
-          WARM_PREFIX_TARGET       = "1"
-        }
-      })
-    }
+    #    vpc-cni = {
+    #      most_recent              = true
+    #      service_account_role_arn = module.vpc_cni_irsa.iam_role_arn
+    #      configuration_values = jsonencode({
+    #        env = {
+    #          # Reference docs https://docs.aws.amazon.com/eks/latest/userguide/cni-increase-ip-addresses.html
+    #          ENABLE_PREFIX_DELEGATION = "true"
+    #          WARM_PREFIX_TARGET       = "1"
+    #        }
+    #      })
+    #    }
   }
 
   vpc_id                   = module.vpc.vpc_id
   subnet_ids               = module.vpc.private_subnets
   control_plane_subnet_ids = module.vpc.intra_subnets
+
+  enable_irsa              = false
 
   manage_aws_auth_configmap = true
 
@@ -279,29 +281,28 @@ module "vpc" {
 
   private_subnet_tags = {
     "kubernetes.io/role/internal-elb" = 1
-    "kubernetes.io/role/elb"          = 1
   }
 
   tags = local.tags
 }
 
-module "vpc_cni_irsa" {
-  source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
-  version = "~> 5.0"
-
-  role_name_prefix      = "VPC-CNI-IRSA"
-  attach_vpc_cni_policy = true
-  vpc_cni_enable_ipv4   = true
-
-  oidc_providers = {
-    main = {
-      provider_arn               = module.eks.oidc_provider_arn
-      namespace_service_accounts = ["kube-system:aws-node"]
-    }
-  }
-
-  tags = local.tags
-}
+#  module "vpc_cni_irsa" {
+#    source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
+#    version = "~> 5.0"
+# 
+#    role_name_prefix      = "VPC-CNI-IRSA"
+#    attach_vpc_cni_policy = true
+#    vpc_cni_enable_ipv4   = true
+# 
+#    oidc_providers = {
+#      main = {
+#        provider_arn               = module.eks.oidc_provider_arn
+#        namespace_service_accounts = ["kube-system:aws-node"]
+#      }
+#    }
+# 
+#    tags = local.tags
+#  }
 
 module "ebs_kms_key" {
   source  = "terraform-aws-modules/kms/aws"
